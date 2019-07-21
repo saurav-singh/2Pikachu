@@ -1,0 +1,87 @@
+* {
+  margin: 0;
+  padding: 0 auto;
+  font-family: 'Gloria Hallelujah', cursive;
+  overflow: hidden;
+}
+
+body {
+  background-color: #222;
+}
+
+img {
+  height: 30px;
+  width: 30px;
+  padding: 10px;
+}
+
+/* HOME STYLE */
+
+.info_box {
+  height: 500px;
+  width: 400px;
+  background-color: burlywood;
+  border: solid 3px rgb(253, 222, 183);
+  margin: 100px auto;
+  border-radius: 2px;
+  text-align: center;
+}
+
+.info_box > h1 {
+  color: rgb(260, 220, 110);
+  margin-right: 0.5em;
+  font-size: 2.5em;
+}
+
+.info_box > .row {
+  display: flex;
+}
+
+h2 {
+  color: darkcyan;
+  text-align: left;
+  margin-left: 2em;
+  font-size: 1.3em;
+}
+
+.header {
+  color: rgb(200, 85, 85);
+  text-align: left;
+  margin-left: 2em;
+  text-decoration: underline;
+}
+
+.info_box > a {
+  font-size: 1.5em;
+  padding: 5px 150px;
+  background-color: rgb(50, 200, 150);
+  border: solid 3px rgb(154, 255, 204);
+  border-radius: 10px;
+  text-decoration: none;
+  color: #fff;
+}
+
+.info_box > a:hover {
+  color: #333;
+  background-color: rgb(154, 255, 204);
+}
+
+/* GAME STYLE */
+
+.GAME {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#canvas {
+  background-color:  burlywood;
+  border: solid 3px rgb(253, 222, 183);
+  border-radius: 2px;
+  margin-top: 100px;
+}
+
+.invImage {
+  display: none;
+}
