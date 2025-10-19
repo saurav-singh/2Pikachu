@@ -152,7 +152,45 @@ window.addEventListener("keydown", function (e) {
 
 window.addEventListener("keyup", function (e) { delete key[e.keyCode]; }, false);
 
+//CANVAS TOUCH LISTENER FOR MOBILE (START/PAUSE/RESTART)
+
+canvas.addEventListener("touchstart", function(e) {
+  e.preventDefault();
+
+  // Start game from start screen
+  if (gameState === "start") {
+    startGame();
+  }
+  // Restart game from game over screen
+  else if (gameState === "gameOver") {
+    resetGame();
+  }
+  // Toggle pause/resume during gameplay
+  else if (gameState === "playing") {
+    gameState = "paused";
+  } else if (gameState === "paused") {
+    gameState = "playing";
+  }
+}, false);
+
 //MOUSE CLICK LISTENER
+
+canvas.addEventListener("click", function(e) {
+  // Start game from start screen
+  if (gameState === "start") {
+    startGame();
+  }
+  // Restart game from game over screen
+  else if (gameState === "gameOver") {
+    resetGame();
+  }
+  // Toggle pause/resume during gameplay
+  else if (gameState === "playing") {
+    gameState = "paused";
+  } else if (gameState === "paused") {
+    gameState = "playing";
+  }
+}, false);
 
 function leftButton() {
   leftClick = true;
@@ -957,4 +995,14 @@ function handleTouchEnd(event) {
   event.preventDefault();
   delete key[37];
   delete key[39];
+}
+
+function handleTouchPause(event) {
+  event.preventDefault();
+  // Toggle pause/resume during gameplay
+  if (gameState === "playing") {
+    gameState = "paused";
+  } else if (gameState === "paused") {
+    gameState = "playing";
+  }
 }
