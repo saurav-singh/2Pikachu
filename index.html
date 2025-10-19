@@ -2,33 +2,37 @@
 <html>
 
 <head>
-  <title> 2 Pikachu </title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>2 Pikachu</title>
   <link rel="stylesheet" type="text/css" href="style.css">
-  <link href="https://fonts.googleapis.com/css?family=Gloria+Hallelujah&display=swap" rel="stylesheet">
 </head>
 
 <body>
-  <div class="info_box">
-    <h1> 2 Pikachu</h1>
 
-    <!-- Instructions -->
-    <h2 class="header"> Instructions:</h2>
-    <div class="row">
-      <h2> Eat The Rare Cany </h2> <img src="assets/candy.png" />
-    </div>
-    <div class="row">
-      <h2> Avoid PokeBalls! </h2><img src="assets/pokeball.png" />
-    </div>
+<div class="GAME">
+  <canvas id="canvas" width="400" height="500"></canvas>
+</div>
 
-    <!-- Controls -->
-    <h2 class="header"> Controls:</h2>
-    <h2> Left key - to move left Pikachu</h2>
-    <h2> Right key - to move right Pikachu</h2>
+<!-- Mobile Touch Controls -->
+<div class="mobile-controls">
+  <button class="touch-btn left-btn" id="leftBtn" ontouchstart="handleTouchLeft(event)" ontouchend="handleTouchEnd(event)">
+    <span>←</span>
+    <span class="btn-label">Left</span>
+  </button>
+  <button class="touch-btn right-btn" id="rightBtn" ontouchstart="handleTouchRight(event)" ontouchend="handleTouchEnd(event)">
+    <span>→</span>
+    <span class="btn-label">Right</span>
+  </button>
+</div>
 
-    <!-- Play Button -->
-    <br />
-    <a href="game.html"> Play!</a>
-  </div>
+<img src="assets/pikachu.png" id="p1" class="invImage">
+<img src="assets/pikachu.png" id="p2" class="invImage">
+<img src="assets/pokeball.png" id="bomb" class="invImage">
+<img src="assets/candy.png" id="fruit" class="invImage">
+
+<script src="script.js"></script>
+
 </body>
 
 </html>
