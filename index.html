@@ -14,6 +14,14 @@
   <canvas id="canvas" width="400" height="500"></canvas>
 </div>
 
+<!-- Mobile Start Button -->
+<div class="mobile-start-button" id="mobileStartBtn">
+  <button class="start-btn" ontouchstart="handleTouchStart(event)" onclick="handleClickStart(event)">
+    <span>▶</span>
+    <span class="btn-label">START</span>
+  </button>
+</div>
+
 <!-- Mobile Touch Controls -->
 <div class="mobile-controls">
   <button class="touch-btn left-btn" id="leftBtn" ontouchstart="handleTouchLeft(event)" ontouchend="handleTouchEnd(event)">

@@ -39,15 +39,21 @@ var width = C.width;
 var height = C.height;
 
 var score = 0;
-var speed = 25;
-var speedElement = 8;
+var speed = 5; // Reduced for smoother animation
+var speedElement = 2; // Very slow starting falling speed
 var timeOut = 0;
 var timeOut2 = 0;
-var timer1 = 1;
-var timer2 = 1.5;
+var timer1 = 2.0; // Much slower spawn rate for level 1
+var timer2 = 2.5; // Much slower spawn rate for level 1
 var level = 1;
 var speedTimer = 0;
 var gameStart = false;
+
+// Dynamic level system
+var baseFallingSpeed = 2; // Starting speed at level 1 (very slow)
+var baseTimer1 = 2.0; // Starting spawn timer for lane 1
+var baseTimer2 = 2.5; // Starting spawn timer for lane 2
+var levelUpTime = 30; // Time in seconds to level up (longer for level 1)
 
 // GAME STATE VARIABLES
 var gameState = "start"; // start, playing, paused, gameOver
@@ -96,12 +102,16 @@ var position = {
 
 var player1 = {
   x: position.a,
-  y: height - 50
+  y: height - 50,
+  targetX: position.a,
+  moving: false
 }
 
 var player2 = {
   x: position.c,
-  y: height - 50
+  y: height - 50,
+  targetX: position.c,
+  moving: false
 }
 
 var fruitPos = {
@@ -212,23 +222,59 @@ function game() {
 }
 
 function time() {
-  timeOut = timeOut + 30 / 1000;
+  // Use deltaTime for frame-rate independent timing
+  var dt = Math.min(deltaTime, 0.1); // Cap delta time to prevent huge jumps
+
+  timeOut = timeOut + dt;
   if (timeOut >= timer1) {
     timeOut = 0;
     elementGenerator_lane1();
   }
 
-  timeOut2 = timeOut2 + 30 / 1000;
+  timeOut2 = timeOut2 + dt;
   if (timeOut2 >= timer2) {
     timeOut2 = 0.5
     elementGenerator_lane2();
   }
 
-  speedTimer = speedTimer + 30 / 1000;
+  speedTimer = speedTimer + dt;
 
 }
 
 ////////////////////////////// GAME LOOP FUNCTIONS ///////////////////////
+
+// Dynamic difficulty calculator
+function updateDifficulty() {
+  /*
+   * Dynamic scaling formulas for unlimited levels:
+   * - Falling speed: Increases logarithmically, caps at level ~100
+   * - Spawn timers: Decrease logarithmically, have minimum values
+   *
+   * Level 1: speed=3, timer1=1.5s, timer2=2.0s (very easy)
+   * Level 10: speed~5, timer1~1.1s, timer2~1.5s (moderate)
+   * Level 25: speed~7, timer1~0.85s, timer2~1.2s (challenging)
+   * Level 50: speed~9, timer1~0.65s, timer2~0.95s (hard)
+   * Level 100: speed~12, timer1~0.5s, timer2~0.75s (extreme)
+   */
+
+  // Logarithmic speed increase: starts slow, gradually increases
+  // Formula: baseSpeed + log(level) * multiplier
+  speedElement = baseFallingSpeed + Math.log(level + 1) * 1.8;
+  speedElement = Math.min(speedElement, 15); // Cap at 15 for playability
+
+  // Logarithmic spawn timer decrease: starts slow, minimum threshold
+  // Formula: baseTimer - log(level) * multiplier, with minimum
+  timer1 = baseTimer1 - Math.log(level + 1) * 0.25;
+  timer1 = Math.max(timer1, 0.5); // Minimum 0.5 seconds between spawns
+
+  timer2 = baseTimer2 - Math.log(level + 1) * 0.3;
+  timer2 = Math.max(timer2, 0.7); // Minimum 0.7 seconds between spawns
+
+  // Optional: Decrease level-up time as you progress (faster levels at high scores)
+  if (level > 20) {
+    levelUpTime = Math.max(20, 30 - Math.floor(level / 15)); // Faster levels after level 20
+  }
+}
 
 function elementGenerator_lane1() {
 
@@ -398,73 +444,77 @@ function elementGenerator_lane2() {
 
 function update() {
 
-  //DIFFICULTY LEVEL UPDATER
-  /* DATA:
-  level: speedElement: timer1, timer2.
-  level1: 8 : 1 , 1.5
-  level2: 9 : 0.85, 1.35
-  level3: 10: 0.80. 1.30
-  level4: 11: 0.70, 1.20
-  level5: 12: 0.70, 1.20
-  level6: 12: 0.65, 1.15
-  need to test rest of the data to add levels
-  */
-  if (level < 6) //Max level is 6 currently
-  {
-    if (speedTimer >= 15) {
-      speedTimer = 0;
-      level++;
-      switch (level) {
-        case 2:
-          speedElement = 9;
-          timer1 = 0.85;
-          timer2 = 1.35;
-          break;
-        case 3:
-          speedElement = 10;
-          timer1 = 0.80;
-          timer2 = 1.30;
-          break;
-        case 4:
-          speedElement = 11;
-          timer1 = 0.70;
-          timer2 = 1.20;
-          break;
-        case 5:
-          speedElement = 12;
-          timer1 = 0.70;
-          timer2 = 1.20;
-          break;
-        default: //level6
-          speedElement = 12;
-          timer1 = 0.65;
-          timer2 = 1.15;
-          break;
-      }
+  //DYNAMIC DIFFICULTY LEVEL UPDATER
+  /* Dynamic level system that scales up to level 100+
+   * Uses logarithmic scaling for smooth, gradual difficulty increase
+   * Speed increases slowly, spawn rate decreases gradually
+   */
+  if (speedTimer >= levelUpTime) {
+    speedTimer = 0;
+    level++;
+    updateDifficulty();
+  }
+
+  //SMOOTH ANIMATION FOR PLAYERS USING INTERPOLATION
+
+  // Player 1 smooth movement
+  if (player1.moving) {
+    var diff1 = player1.targetX - player1.x;
+    if (Math.abs(diff1) < 1) {
+      player1.x = player1.targetX;
+      player1.moving = false;
+    } else {
+      player1.x += diff1 * 0.15; // Slower interpolation for smoother, controlled movement
     }
   }
 
-  //ANIMATION FOR EITHER PLAYER DEPENDING ON KEYBOARD INPUT
+  // Player 2 smooth movement
+  if (player2.moving) {
+    var diff2 = player2.targetX - player2.x;
+    if (Math.abs(diff2) < 1) {
+      player2.x = player2.targetX;
+      player2.moving = false;
+    } else {
+      player2.x += diff2 * 0.15; // Slower interpolation for smoother, controlled movement
+    }
+  }
 
+  // Legacy animation system (keeping for compatibility)
   if (animation.animate) {
 
     if (animation.p1A) {
-      if (player1.x == position.b) { animation.p1A = false; animation.animate = false; }
+      if (player1.x >= position.b - 1) {
+        player1.x = position.b;
+        animation.p1A = false;
+        animation.animate = false;
+      }
       else player1.x += speed;
     }
 
     if (animation.p1B) {
-      if (player1.x == position.a) { animation.p1B = false; animation.animate = false; }
+      if (player1.x <= position.a + 1) {
+        player1.x = position.a;
+        animation.p1B = false;
+        animation.animate = false;
+      }
       else player1.x -= speed;
     }
 
     if (animation.p2C) {
-      if (player2.x == position.d) { animation.p2C = false; animation.animate = false; }
+      if (player2.x >= position.d - 1) {
+        player2.x = position.d;
+        animation.p2C = false;
+        animation.animate = false;
+      }
       else player2.x += speed;
     }
 
     if (animation.p2D) {
-      if (player2.x == position.c) { animation.p2D = false; animation.animate = false; }
+      if (player2.x <= position.c + 1) {
+        player2.x = position.c;
+        animation.p2D = false;
+        animation.animate = false;
+      }
       else player2.x -= speed;
     }
 
@@ -473,22 +523,32 @@ function update() {
 
   //CHECK KEYBOARD INPUT AND ANIMATE PLAYERS ACCORDINGLY
 
-  if (animation.animate == false) {
-
+  if (animation.animate == false && !player1.moving && !player2.moving) {
 
     if (key[37] == true || leftClick == true) {
       delete key[37];
       leftClick = false;
-      animation.animate = true;
-      if (player1.x == position.a) animation.p1A = true;
-      else animation.p1B = true;
+
+      // Use smooth movement system
+      if (Math.abs(player1.x - position.a) < 1 || player1.x < position.a + 10) {
+        player1.targetX = position.b;
+      } else {
+        player1.targetX = position.a;
+      }
+      player1.moving = true;
     }
+
     if (key[39] == true || rightClick == true) {
       delete key[39];
       rightClick = false;
-      animation.animate = true;
-      if (player2.x == position.c) animation.p2C = true;
-      else animation.p2D = true;
+
+      // Use smooth movement system
+      if (Math.abs(player2.x - position.c) < 1 || player2.x < position.c + 10) {
+        player2.targetX = position.d;
+      } else {
+        player2.targetX = position.c;
+      }
+      player2.moving = true;
     }
 
   }
@@ -619,13 +679,17 @@ function render() {
 
   if (gameState === "start") {
     drawStartScreen();
+    updateMobileStartButton();
     return;
   }
 
   if (gameState === "gameOver") {
     drawGameOverScreen();
+    updateMobileStartButton();
     return;
   }
+
+  updateMobileStartButton();
 
   //PLAYERS
   cx.drawImage(p1, player1.x, player1.y);
@@ -660,8 +724,16 @@ function render() {
   cx.fillStyle = "#FFD700";
   cx.fillText("Score: " + score, 10, 20);
 
+  // Enhanced level display with dynamic difficulty indicator
   cx.fillStyle = "#FF6B6B";
-  cx.fillText("Level: " + level, 10, 37);
+  var difficultyText = "";
+  if (level <= 5) difficultyText = "Easy";
+  else if (level <= 15) difficultyText = "Medium";
+  else if (level <= 30) difficultyText = "Hard";
+  else if (level <= 50) difficultyText = "Expert";
+  else difficultyText = "Insane";
+
+  cx.fillText("Lv " + level + " (" + difficultyText + ")", 10, 37);
 
   // Lives display with hearts
   cx.fillStyle = "#FF1493";
@@ -720,7 +792,21 @@ function render() {
 
 
 //GAME LOOP DEFINITION
-gameLoop = setInterval(game, 30); //RUNS THE FUNCTION "game" in every 30 miliSec
+// Using requestAnimationFrame for smoother 60 FPS animation
+var lastFrameTime = Date.now();
+var deltaTime = 0;
+
+function gameLoop() {
+  var currentTime = Date.now();
+  deltaTime = (currentTime - lastFrameTime) / 1000; // Convert to seconds
+  lastFrameTime = currentTime;
+
+  game();
+  requestAnimationFrame(gameLoop);
+}
+
+// Start the game loop
+requestAnimationFrame(gameLoop);
 
 //================= HELPER FUNCTIONS =================//
 
@@ -738,14 +824,19 @@ function resetGame() {
   combo = 0;
   maxCombo = 0;
   scoreMultiplier = 1;
-  speedElement = 8;
-  timer1 = 1;
-  timer2 = 1.5;
+  speedElement = baseFallingSpeed;
+  timer1 = baseTimer1;
+  timer2 = baseTimer2;
   speedTimer = 0;
+  levelUpTime = 30; // Reset level up time
 
   // Reset positions
   player1.x = position.a;
+  player1.targetX = position.a;
+  player1.moving = false;
   player2.x = position.c;
+  player2.targetX = position.c;
+  player2.moving = false;
 
   // Clear all falling objects
   fruitPos = {
@@ -802,9 +893,11 @@ function gameOver() {
   }
 }
 
-// Refactored fruit collision detection
+// Refactored fruit collision detection with smoother hit detection
 function checkFruitCollision(fruitPos, xKey, yKey, pKey, player) {
-  if (fruitPos[xKey] == player.x) {
+  // Use tolerance for smoother collision detection with interpolated positions
+  var tolerance = 8;
+  if (Math.abs(fruitPos[xKey] - Math.round(player.x)) <= tolerance) {
     if (fruitPos[yKey] + 28 >= player.y && fruitPos[yKey] <= player.y + 20) {
       try { eat.play(); } catch(e) { }
 
@@ -830,9 +923,11 @@ function checkFruitCollision(fruitPos, xKey, yKey, pKey, player) {
   }
 }
 
-// Refactored bomb collision detection
+// Refactored bomb collision detection with smoother hit detection
 function checkBombCollision(bombPos, xKey, yKey, pKey, player) {
-  if (bombPos[pKey] && bombPos[xKey] == player.x) {
+  // Use tolerance for smoother collision detection with interpolated positions
+  var tolerance = 8;
+  if (bombPos[pKey] && Math.abs(bombPos[xKey] - Math.round(player.x)) <= tolerance) {
     if (bombPos[yKey] + 28 >= player.y && bombPos[yKey] <= player.y + 20) {
       bombPos[pKey] = false;
       loseLife();
@@ -960,7 +1055,16 @@ function drawGameOverScreen() {
 
   cx.fillStyle = "#FFFFFF";
   cx.font = "20px Arial";
-  cx.fillText("Level Reached: " + level, width / 2, height / 2 + 20);
+
+  // Display level with difficulty
+  var finalDifficulty = "";
+  if (level <= 5) finalDifficulty = "Easy";
+  else if (level <= 15) finalDifficulty = "Medium";
+  else if (level <= 30) finalDifficulty = "Hard";
+  else if (level <= 50) finalDifficulty = "Expert";
+  else finalDifficulty = "Insane";
+
+  cx.fillText("Level: " + level + " (" + finalDifficulty + ")", width / 2, height / 2 + 20);
   cx.fillText("Max Combo: " + maxCombo + "x", width / 2, height / 2 + 50);
 
   if (score >= highScore) {
@@ -1004,5 +1108,44 @@ function handleTouchPause(event) {
     gameState = "paused";
   } else if (gameState === "paused") {
     gameState = "playing";
+  }
+}
+
+function handleTouchStart(event) {
+  event.preventDefault();
+  if (gameState === "start") {
+    startGame();
+    updateMobileStartButton();
+  } else if (gameState === "gameOver") {
+    resetGame();
+    updateMobileStartButton();
+  }
+}
+
+function handleClickStart(event) {
+  event.preventDefault();
+  if (gameState === "start") {
+    startGame();
+    updateMobileStartButton();
+  } else if (gameState === "gameOver") {
+    resetGame();
+    updateMobileStartButton();
+  }
+}
+
+// Update mobile start button visibility
+function updateMobileStartButton() {
+  var startBtn = document.getElementById('mobileStartBtn');
+  if (gameState === "start" || gameState === "gameOver") {
+    startBtn.style.display = 'block';
+    // Update button text based on state
+    var btnLabel = startBtn.querySelector('.btn-label');
+    if (gameState === "gameOver") {
+      btnLabel.textContent = 'RESTART';
+    } else {
+      btnLabel.textContent = 'START';
+    }
+  } else {
+    startBtn.style.display = 'none';
   }
 }
